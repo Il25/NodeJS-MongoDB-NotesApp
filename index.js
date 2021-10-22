@@ -26,7 +26,7 @@ const handleAddNote = (req, res, db) => {
             db
                 .collection("Notes")
                 .insertOne(newNote)
-                .then(data => {
+                .then(_ => {
                     res.statusCode = 201;
                     res.end("Note successully added");
                 })
@@ -45,30 +45,57 @@ const handleAddNote = (req, res, db) => {
     res.end("OK");
 };
 
-const handleDelete = (req, res, db) => {
+const handleDeleteNote = (req, res, db) => {
     if (req.body.id) {
-        const { id } = req.body;
-        db
-            .collection("Notes")
-            .deleteOne({id})
-            .then(_ => {
-                res.statusCode = 200;
-                res.end("Note is deleted!");
-            })
-            .catch(e => {
-                res.statusCode = 500;
-                res.end("Error deleting note!");
-                console.warn("handleDelete", e);
-
-            })
+        if(db) {
+            const { id } = req.body;
+            db
+                .collection("Notes")
+                .deleteOne({id})
+                .then(_ => {
+                    res.statusCode = 200;
+                    res.end("Note is deleted!");
+                })
+                .catch(e => {
+                    res.statusCode = 500;
+                    res.end("Error deleting note!");
+                    console.warn("handleDeleteNote", e);
+                })
+        } else {
+            res.end("Cannot connect to database");
+        }    
     } else {
         res.statusCode = 400;
         res.end("Not valid data!");
     };
+    res.end("Deleted");
 };
 
-const handleEdit = (req, res, db) => {
-
+const handleEditNote = (req, res, db) => {
+    const isCorrect = chechIsNoteCorrect(req.body);
+    if (isCorrect) {
+            const { id } = req.body;
+            if (db) {
+            db
+                .collection("Notes")
+                .updateOne({id})
+                .then(_ => {
+                    res.statusCode = 200;
+                    res.end("Note successully deleted");
+                })
+                .catch(e => {
+                    console.warn("handleEditNote", e);
+                    res.statusCode = 500;
+                    res.end("Error adding note");
+                });
+        } else {
+            res.end("Cannot connect to database");
+        }
+    } else {
+        res.statusCode = 400;
+        res.end("Not valid data");
+    }
+    res.end("Edited");
 };
 
 mongo.connect(url, (err, client) => {
@@ -78,8 +105,8 @@ mongo.connect(url, (err, client) => {
 
     app.get("/", handleRoot);
     app.post("/note", (req, res) => handleAddNote(req, res, db));
-    app.delete("/note", (req, res) => handleDelete(req, res, db));
-    app.put("/note", (req, res) => handleEdit(req, res, db));
+    app.delete("/note", (req, res) => handleDeleteNote(req, res, db));
+    app.put("/note", (req, res) => handleEditNote(req, res, db));
 
     app.listen(3025, () => {
         console.log("Listening on port 3025...");
